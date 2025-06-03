@@ -454,7 +454,7 @@
     <div class="container">
         <div class="header">
             <h1>🚛 Warehouse Management System</h1>
-            <div class="subtitle">Excel Add-in - Direct Database Updates (v1.6)</div>
+            <div class="subtitle">Excel Add-in - Direct Database Updates (v1.7)</div>
         </div>
 
         <!-- Status Messages -->
@@ -593,7 +593,7 @@
         // Initialize Office Add-in
         Office.onReady((info) => {
             if (info.host === Office.HostType.Excel) {
-                showStatus('Warehouse Management System v1.6 loaded successfully! Ready to work with your open Excel file.', 'success');
+                showStatus('Warehouse Management System v1.7 loaded successfully! Ready to work with your open Excel file.', 'success');
                 
                 // Set default ship date to today
                 const today = new Date().toISOString().split('T')[0];
@@ -905,17 +905,17 @@
                 // Get shipment title
                 const shipmentTitle = document.querySelector('.pick-list-subtitle')?.textContent || 'Pick List';
                 
-                // Create data array starting with title
+                // Create data array exactly like your revised file
                 let wsData = [];
                 
-                // Add title row (like the photo)
+                // Add title row (will be merged across all columns)
                 wsData.push([shipmentTitle]);
                 wsData.push([]); // Empty row for spacing
                 
                 // Add column headers
                 wsData.push(['License plates', 'Location in Warehouse', 'Pallet Type', 'Warehouse Location']);
                 
-                // Add all data rows (no warehouse grouping, just clean rows like the photo)
+                // Add all data rows
                 currentPickList.forEach(item => {
                     wsData.push([item.licensePlate, item.location, item.palletType, item.warehouse]);
                 });
@@ -923,7 +923,12 @@
                 // Create worksheet
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 
-                // Set column widths to match the photo
+                // MERGE THE TITLE across all columns (A1:D2) - this is what you want!
+                ws['!merges'] = [
+                    { s: { r: 0, c: 0 }, e: { r: 1, c: 3 } } // Merge A1:D2
+                ];
+                
+                // Set column widths
                 ws['!cols'] = [
                     { width: 15 }, // License plates
                     { width: 25 }, // Location in Warehouse  
@@ -931,22 +936,30 @@
                     { width: 20 }  // Warehouse Location
                 ];
 
-                // Style the title (row 1)
+                // Style the merged title
                 if (ws['A1']) {
                     ws['A1'].s = { 
                         font: { bold: true, sz: 14 },
-                        alignment: { horizontal: 'left' }
+                        alignment: { horizontal: 'center', vertical: 'center' },
+                        fill: { fgColor: { rgb: 'E7E6E6' } },
+                        border: {
+                            top: { style: 'thin', color: { rgb: '000000' } },
+                            bottom: { style: 'thin', color: { rgb: '000000' } },
+                            left: { style: 'thin', color: { rgb: '000000' } },
+                            right: { style: 'thin', color: { rgb: '000000' } }
+                        }
                     };
                 }
 
-                // Style the headers (row 3)
+                // Style the headers (row 3) with darker background
                 const headerRow = 3;
                 ['A', 'B', 'C', 'D'].forEach(col => {
                     const cellRef = col + headerRow;
                     if (ws[cellRef]) {
                         ws[cellRef].s = {
-                            font: { bold: true },
-                            fill: { fgColor: { rgb: 'F0F0F0' } },
+                            font: { bold: true, color: { rgb: 'FFFFFF' } },
+                            fill: { fgColor: { rgb: '4472C4' } }, // Blue background like Excel tables
+                            alignment: { horizontal: 'center', vertical: 'center' },
                             border: {
                                 top: { style: 'thin', color: { rgb: '000000' } },
                                 bottom: { style: 'thin', color: { rgb: '000000' } },
@@ -957,13 +970,16 @@
                     }
                 });
 
-                // Add borders to all data cells
+                // Style all data cells with alternating row colors (Excel table style)
                 const dataStartRow = 4;
                 for (let row = dataStartRow; row <= dataStartRow + currentPickList.length - 1; row++) {
+                    const isEvenRow = (row - dataStartRow) % 2 === 1;
                     ['A', 'B', 'C', 'D'].forEach(col => {
                         const cellRef = col + row;
                         if (ws[cellRef]) {
                             ws[cellRef].s = {
+                                fill: { fgColor: { rgb: isEvenRow ? 'F2F2F2' : 'FFFFFF' } }, // Alternating colors
+                                alignment: { horizontal: 'left', vertical: 'center' },
                                 border: {
                                     top: { style: 'thin', color: { rgb: '000000' } },
                                     bottom: { style: 'thin', color: { rgb: '000000' } },
@@ -975,15 +991,14 @@
                     });
                 }
 
-                // Set print area and page setup
+                // Set print area and page setup for clean printing
                 ws['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
-                ws['!printHeader'] = [1, 2]; // Print title rows on every page
                 
                 // Add worksheet to workbook
                 XLSX.utils.book_append_sheet(wb, ws, 'Pick List');
                 
                 // Generate clean filename
-                const timestamp = new Date().toISOString().slice(0, 10); // Just date YYYY-MM-DD
+                const timestamp = new Date().toISOString().slice(0, 10);
                 const cleanTitle = shipmentTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
                 const filename = `${cleanTitle}_${timestamp}.xlsx`;
                 
