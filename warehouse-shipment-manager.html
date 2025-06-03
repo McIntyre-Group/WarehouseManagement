@@ -220,7 +220,7 @@
     <div class="container">
         <div class="header">
             <h1>🚛 Warehouse Shipment Manager</h1>
-            <div class="subtitle">Excel Add-in - Direct Database Updates</div>
+            <div class="subtitle">Excel Add-in - Direct Database Updates (v1.2)</div>
         </div>
 
         <!-- Status Messages -->
@@ -279,7 +279,7 @@
         // Initialize Office Add-in
         Office.onReady((info) => {
             if (info.host === Office.HostType.Excel) {
-                showStatus('Excel Add-in loaded successfully! Ready to work with your open Excel file.', 'success');
+                showStatus('Excel Add-in v1.2 loaded successfully! Ready to work with your open Excel file.', 'success');
                 
                 // Set default ship date to today
                 const today = new Date().toISOString().split('T')[0];
