@@ -593,7 +593,7 @@
         // Initialize Office Add-in
         Office.onReady((info) => {
             if (info.host === Office.HostType.Excel) {
-                showStatus('Warehouse Management System v1.3 loaded successfully! Ready to work with your open Excel file.', 'success');
+                showStatus('Warehouse Management System v1.5 loaded successfully! Ready to work with your open Excel file.', 'success');
                 
                 // Set default ship date to today
                 const today = new Date().toISOString().split('T')[0];
