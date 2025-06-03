@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warehouse Shipment Manager</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -15,7 +16,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             color: #333;
@@ -93,26 +94,6 @@
             font-family: 'Courier New', monospace;
         }
 
-        .file-input {
-            border: 2px dashed #4299e1;
-            background: #f7fafc;
-            text-align: center;
-            padding: 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .file-input:hover {
-            background: #edf2f7;
-            border-color: #3182ce;
-        }
-
-        .file-input.dragover {
-            background: #e6fffa;
-            border-color: #38b2ac;
-        }
-
         .button {
             background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
             color: white;
@@ -145,14 +126,6 @@
 
         .button.secondary:hover {
             box-shadow: 0 8px 15px rgba(72, 187, 120, 0.3);
-        }
-
-        .button.download {
-            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
-        }
-
-        .button.download:hover {
-            box-shadow: 0 8px 15px rgba(237, 137, 54, 0.3);
         }
 
         .status {
@@ -224,15 +197,6 @@
             font-size: 1.2rem;
         }
 
-        .file-info {
-            background: #e6fffa;
-            border: 1px solid #81e6d9;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 10px 0;
-            color: #234e52;
-        }
-
         @media print {
             body {
                 background: white;
@@ -256,26 +220,11 @@
     <div class="container">
         <div class="header">
             <h1>🚛 Warehouse Shipment Manager</h1>
-            <div class="subtitle">Standalone Desktop App - No Installation Required</div>
+            <div class="subtitle">Excel Add-in - Direct Database Updates</div>
         </div>
 
         <!-- Status Messages -->
         <div id="status" class="hidden"></div>
-
-        <!-- File Upload Section -->
-        <div class="section">
-            <h2><span class="icon">📁</span> Load Excel File</h2>
-            
-            <div class="file-input" id="fileDropZone" onclick="document.getElementById('fileInput').click()">
-                <div style="font-size: 2rem; margin-bottom: 10px;">📤</div>
-                <div><strong>Click to select your Excel file</strong></div>
-                <div style="margin-top: 5px; color: #718096;">or drag and drop here</div>
-                <div style="margin-top: 10px; font-size: 0.9rem; color: #a0aec0;">Supports .xlsx files</div>
-            </div>
-            
-            <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
-            <div id="fileInfo" class="file-info hidden"></div>
-        </div>
 
         <!-- Create Shipment Section -->
         <div class="section" id="createShipmentSection">
@@ -318,99 +267,25 @@
             </div>
 
             <button class="button secondary" onclick="updateShippingDetails()">
-                ✅ Update Shipping Details
-            </button>
-        </div>
-
-        <!-- Download Section -->
-        <div class="section hidden" id="downloadSection">
-            <h2><span class="icon">💾</span> Download Updated File</h2>
-            <p>Your Excel file has been updated with shipping details. Download the updated version:</p>
-            <button class="button download" onclick="downloadFile()">
-                📥 Download Updated Excel File
+                ✅ Update Excel with Shipping Details
             </button>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        let workbook = null;
         let currentLicensePlates = [];
         let currentPickList = [];
-        let originalFileName = '';
 
-        // Set default ship date to today
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('shipDate').value = today;
-        });
-
-        // File handling
-        const fileInput = document.getElementById('fileInput');
-        const fileDropZone = document.getElementById('fileDropZone');
-        const fileInfo = document.getElementById('fileInfo');
-
-        fileInput.addEventListener('change', handleFileSelect);
-        
-        // Drag and drop functionality
-        fileDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileDropZone.classList.add('dragover');
-        });
-
-        fileDropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            fileDropZone.classList.remove('dragover');
-        });
-
-        fileDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileDropZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
+        // Initialize Office Add-in
+        Office.onReady((info) => {
+            if (info.host === Office.HostType.Excel) {
+                showStatus('Excel Add-in loaded successfully! Ready to work with your open Excel file.', 'success');
+                
+                // Set default ship date to today
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('shipDate').value = today;
             }
         });
-
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        }
-
-        function handleFile(file) {
-            if (!file.name.endsWith('.xlsx')) {
-                showStatus('Please select an Excel (.xlsx) file', 'error');
-                return;
-            }
-
-            originalFileName = file.name;
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    workbook = XLSX.read(e.target.result, {type: 'binary'});
-                    
-                    // Show file info
-                    fileInfo.innerHTML = `
-                        <strong>✅ Loaded:</strong> ${file.name}<br>
-                        <strong>📊 Sheets:</strong> ${workbook.SheetNames.join(', ')}<br>
-                        <strong>📅 Ready to process shipments!</strong>
-                    `;
-                    fileInfo.classList.remove('hidden');
-                    
-                    // Show shipment section
-                    document.getElementById('shipmentSection').classList.remove('hidden');
-                    
-                    showStatus('Excel file loaded successfully!', 'success');
-                } catch (error) {
-                    showStatus('Error reading Excel file: ' + error.message, 'error');
-                }
-            };
-            
-            reader.readAsBinaryString(file);
-        }
 
         function showStatus(message, type = 'info') {
             const statusDiv = document.getElementById('status');
@@ -426,12 +301,7 @@
             }
         }
 
-        function createShipment() {
-            if (!workbook) {
-                showStatus('Please load an Excel file first', 'error');
-                return;
-            }
-
+        async function createShipment() {
             const title = document.getElementById('shipmentTitle').value.trim();
             const licensePlatesText = document.getElementById('licensePlates').value.trim();
 
@@ -454,58 +324,69 @@
 
             showStatus(`Searching for ${currentLicensePlates.length} license plates...`, 'info');
 
-            currentPickList = [];
-            
-            // Search through all worksheets for the license plates
-            workbook.SheetNames.forEach(sheetName => {
-                // Skip certain sheets
-                if (sheetName.includes('PIVOT') || sheetName.includes('TOTAL DATA') || 
-                    sheetName.includes('Lookup')) {
-                    return;
-                }
+            try {
+                await Excel.run(async (context) => {
+                    // Search through all worksheets for the license plates
+                    const worksheets = context.workbook.worksheets;
+                    worksheets.load('items/name');
+                    await context.sync();
 
-                const worksheet = workbook.Sheets[sheetName];
-                const data = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                
-                if (data.length === 0) return;
-                
-                const headers = data[0];
-                
-                // Find column indices
-                const licenseCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('license'));
-                const locationCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('location in warehouse'));
-                const palletCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('pallet type'));
-                const warehouseCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('warehouse location'));
-                
-                if (licenseCol === -1) return;
-
-                // Search for each license plate in this sheet
-                for (let row = 1; row < data.length; row++) {
-                    const licensePlate = parseInt(data[row][licenseCol]);
+                    currentPickList = [];
                     
-                    if (currentLicensePlates.includes(licensePlate)) {
-                        currentPickList.push({
-                            licensePlate: licensePlate,
-                            location: locationCol !== -1 ? data[row][locationCol] : 'N/A',
-                            palletType: palletCol !== -1 ? data[row][palletCol] : 'N/A',
-                            warehouse: warehouseCol !== -1 ? data[row][warehouseCol] : 'N/A',
-                            sheetName: sheetName,
-                            rowIndex: row
-                        });
-                    }
-                }
-            });
+                    // Look through each date sheet (skip PIVOT TABLE, TOTAL DATA, Lookup location)
+                    for (const worksheet of worksheets.items) {
+                        if (worksheet.name.includes('MAY') || worksheet.name.includes('JUNE') || 
+                            worksheet.name.includes('JULY') || worksheet.name.includes('AUG')) {
+                            
+                            const usedRange = worksheet.getUsedRange();
+                            usedRange.load('values');
+                            await context.sync();
 
-            // Generate pick list display
-            displayPickList(title);
-            
-            const found = currentPickList.length;
-            const total = currentLicensePlates.length;
-            
-            if (found === total) {
-                showStatus(`✅ Found all ${found} license plates!`, 'success');
-            } else {
-                showStatus(`⚠️ Found ${found} of ${total} license plates. Missing: ${total - found}`, 'error');
+                            const values = usedRange.values;
+                            const headers = values[0];
+                            
+                            // Find column indices
+                            const licenseCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('license'));
+                            const locationCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('location in warehouse'));
+                            const palletCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('pallet type'));
+                            const warehouseCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('warehouse location'));
+                            
+                            if (licenseCol === -1) continue;
+
+                            // Search for each license plate in this sheet
+                            for (let row = 1; row < values.length; row++) {
+                                const licensePlate = parseInt(values[row][licenseCol]);
+                                
+                                if (currentLicensePlates.includes(licensePlate)) {
+                                    currentPickList.push({
+                                        licensePlate: licensePlate,
+                                        location: locationCol !== -1 ? values[row][locationCol] : 'N/A',
+                                        palletType: palletCol !== -1 ? values[row][palletCol] : 'N/A',
+                                        warehouse: warehouseCol !== -1 ? values[row][warehouseCol] : 'N/A',
+                                        sheetName: worksheet.name,
+                                        rowIndex: row
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    // Generate pick list display
+                    displayPickList(title);
+                    
+                    const found = currentPickList.length;
+                    const total = currentLicensePlates.length;
+                    
+                    if (found === total) {
+                        showStatus(`✅ Found all ${found} license plates!`, 'success');
+                    } else {
+                        showStatus(`⚠️ Found ${found} of ${total} license plates. Missing: ${total - found}`, 'error');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error creating shipment:', error);
+                showStatus('Error searching for license plates: ' + error.message, 'error');
             }
         }
 
@@ -549,7 +430,7 @@
             shippingSection.classList.remove('hidden');
         }
 
-        function updateShippingDetails() {
+        async function updateShippingDetails() {
             const shipDate = document.getElementById('shipDate').value;
             const trailerNumber = document.getElementById('trailerNumber').value.trim();
 
@@ -565,111 +446,70 @@
 
             showStatus(`Updating ${currentPickList.length} records with shipping details...`, 'info');
 
-            // Group updates by sheet
-            const updatesBySheet = currentPickList.reduce((acc, item) => {
-                if (!acc[item.sheetName]) acc[item.sheetName] = [];
-                acc[item.sheetName].push(item);
-                return acc;
-            }, {});
+            try {
+                await Excel.run(async (context) => {
+                    // Group updates by sheet
+                    const updatesBySheet = currentPickList.reduce((acc, item) => {
+                        if (!acc[item.sheetName]) acc[item.sheetName] = [];
+                        acc[item.sheetName].push(item);
+                        return acc;
+                    }, {});
 
-            let updatedCount = 0;
+                    let updatedCount = 0;
 
-            Object.entries(updatesBySheet).forEach(([sheetName, items]) => {
-                const worksheet = workbook.Sheets[sheetName];
-                const data = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                
-                if (data.length === 0) return;
-                
-                const headers = data[0];
-                
-                // Find Ship out Date and Ship out Trailer# columns
-                const shipDateCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('ship out date'));
-                const trailerCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('ship out trailer'));
+                    for (const [sheetName, items] of Object.entries(updatesBySheet)) {
+                        const worksheet = context.workbook.worksheets.getItem(sheetName);
+                        const usedRange = worksheet.getUsedRange();
+                        usedRange.load('values');
+                        await context.sync();
 
-                if (shipDateCol === -1 || trailerCol === -1) {
-                    console.log(`Missing shipping columns in ${sheetName}`);
-                    return;
-                }
+                        const values = usedRange.values;
+                        const headers = values[0];
+                        
+                        // Find Ship out Date and Ship out Trailer# columns
+                        const shipDateCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('ship out date'));
+                        const trailerCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('ship out trailer'));
 
-                // Update each item
-                items.forEach(item => {
-                    // Update ship date
-                    data[item.rowIndex][shipDateCol] = new Date(shipDate);
+                        if (shipDateCol === -1 || trailerCol === -1) {
+                            console.log(`Missing shipping columns in ${sheetName}`);
+                            continue;
+                        }
+
+                        // Update each item
+                        for (const item of items) {
+                            // Update ship date
+                            const shipDateCell = worksheet.getCell(item.rowIndex, shipDateCol);
+                            shipDateCell.values = [[new Date(shipDate)]];
+                            
+                            // Update trailer number
+                            const trailerCell = worksheet.getCell(item.rowIndex, trailerCol);
+                            trailerCell.values = [[trailerNumber]];
+                            
+                            updatedCount++;
+                        }
+                    }
+
+                    await context.sync();
+                    showStatus(`✅ Successfully updated ${updatedCount} records with shipping details!`, 'success');
                     
-                    // Update trailer number
-                    data[item.rowIndex][trailerCol] = trailerNumber;
+                    // Clear the form
+                    document.getElementById('shipmentTitle').value = '';
+                    document.getElementById('licensePlates').value = '';
+                    document.getElementById('trailerNumber').value = '';
                     
-                    updatedCount++;
+                    // Hide sections
+                    document.getElementById('pickListSection').classList.add('hidden');
+                    document.getElementById('shippingSection').classList.add('hidden');
+                    
+                    // Reset arrays
+                    currentLicensePlates = [];
+                    currentPickList = [];
                 });
 
-                // Write data back to worksheet
-                const newWorksheet = XLSX.utils.aoa_to_sheet(data);
-                workbook.Sheets[sheetName] = newWorksheet;
-            });
-
-            showStatus(`✅ Successfully updated ${updatedCount} records with shipping details!`, 'success');
-            
-            // Show download section
-            document.getElementById('downloadSection').classList.remove('hidden');
-        }
-
-        function downloadFile() {
-            if (!workbook) {
-                showStatus('No file to download', 'error');
-                return;
-            }
-
-            try {
-                // Generate new filename with timestamp
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                const baseName = originalFileName.replace('.xlsx', '');
-                const newFileName = `${baseName}_UPDATED_${timestamp}.xlsx`;
-
-                // Convert workbook to binary string
-                const wbout = XLSX.write(workbook, {bookType: 'xlsx', type: 'binary'});
-                
-                // Create blob and download
-                const blob = new Blob([s2ab(wbout)], {type: 'application/octet-stream'});
-                const url = window.URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = newFileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-
-                showStatus(`File downloaded as: ${newFileName}`, 'success');
-                
-                // Reset form
-                resetForm();
-                
             } catch (error) {
-                showStatus('Error downloading file: ' + error.message, 'error');
+                console.error('Error updating shipping details:', error);
+                showStatus('Error updating shipping details: ' + error.message, 'error');
             }
-        }
-
-        function s2ab(s) {
-            const buf = new ArrayBuffer(s.length);
-            const view = new Uint8Array(buf);
-            for (let i = 0; i < s.length; i++) {
-                view[i] = s.charCodeAt(i) & 0xFF;
-            }
-            return buf;
-        }
-
-        function resetForm() {
-            document.getElementById('shipmentTitle').value = '';
-            document.getElementById('licensePlates').value = '';
-            document.getElementById('trailerNumber').value = '';
-            
-            document.getElementById('pickListSection').classList.add('hidden');
-            document.getElementById('shippingSection').classList.add('hidden');
-            document.getElementById('downloadSection').classList.add('hidden');
-            
-            currentLicensePlates = [];
-            currentPickList = [];
         }
     </script>
 </body>
