@@ -454,7 +454,7 @@
     <div class="container">
         <div class="header">
             <h1>🚛 Warehouse Management System</h1>
-            <div class="subtitle">Excel Add-in - Direct Database Updates (v1.7)</div>
+            <div class="subtitle">Excel Add-in - Direct Database Updates (v1.8)</div>
         </div>
 
         <!-- Status Messages -->
@@ -593,7 +593,7 @@
         // Initialize Office Add-in
         Office.onReady((info) => {
             if (info.host === Office.HostType.Excel) {
-                showStatus('Warehouse Management System v1.7 loaded successfully! Ready to work with your open Excel file.', 'success');
+                showStatus('Warehouse Management System v1.8 loaded successfully! Ready to work with your open Excel file.', 'success');
                 
                 // Set default ship date to today
                 const today = new Date().toISOString().split('T')[0];
@@ -905,12 +905,12 @@
                 // Get shipment title
                 const shipmentTitle = document.querySelector('.pick-list-subtitle')?.textContent || 'Pick List';
                 
-                // Create data array exactly like your revised file
+                // Create data array
                 let wsData = [];
                 
-                // Add title row (will be merged across all columns)
-                wsData.push([shipmentTitle]);
-                wsData.push([]); // Empty row for spacing
+                // Add title row (will be merged)
+                wsData.push([shipmentTitle, '', '', '']); // Fill all columns so merge works
+                wsData.push(['', '', '', '']); // Empty row for spacing
                 
                 // Add column headers
                 wsData.push(['License plates', 'Location in Warehouse', 'Pallet Type', 'Warehouse Location']);
@@ -923,9 +923,9 @@
                 // Create worksheet
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 
-                // MERGE THE TITLE across all columns (A1:D2) - this is what you want!
+                // MERGE the title properly (A1:D2)
                 ws['!merges'] = [
-                    { s: { r: 0, c: 0 }, e: { r: 1, c: 3 } } // Merge A1:D2
+                    { s: { r: 0, c: 0 }, e: { r: 1, c: 3 } }
                 ];
                 
                 // Set column widths
@@ -936,64 +936,38 @@
                     { width: 20 }  // Warehouse Location
                 ];
 
-                // Style the merged title
-                if (ws['A1']) {
-                    ws['A1'].s = { 
-                        font: { bold: true, sz: 14 },
-                        alignment: { horizontal: 'center', vertical: 'center' },
-                        fill: { fgColor: { rgb: 'E7E6E6' } },
-                        border: {
-                            top: { style: 'thin', color: { rgb: '000000' } },
-                            bottom: { style: 'thin', color: { rgb: '000000' } },
-                            left: { style: 'thin', color: { rgb: '000000' } },
-                            right: { style: 'thin', color: { rgb: '000000' } }
-                        }
-                    };
-                }
-
-                // Style the headers (row 3) with darker background
-                const headerRow = 3;
-                ['A', 'B', 'C', 'D'].forEach(col => {
-                    const cellRef = col + headerRow;
-                    if (ws[cellRef]) {
-                        ws[cellRef].s = {
-                            font: { bold: true, color: { rgb: 'FFFFFF' } },
-                            fill: { fgColor: { rgb: '4472C4' } }, // Blue background like Excel tables
-                            alignment: { horizontal: 'center', vertical: 'center' },
-                            border: {
-                                top: { style: 'thin', color: { rgb: '000000' } },
-                                bottom: { style: 'thin', color: { rgb: '000000' } },
-                                left: { style: 'thin', color: { rgb: '000000' } },
-                                right: { style: 'thin', color: { rgb: '000000' } }
-                            }
-                        };
+                // Create an Excel Table for the data (this gives us proper table formatting)
+                const tableRange = `A3:D${3 + currentPickList.length}`;
+                ws['!tables'] = [{
+                    name: 'PickListTable',
+                    ref: tableRange,
+                    headerRowCount: 1,
+                    style: {
+                        theme: 'TableStyleMedium2', // Blue table style
+                        showFirstColumn: false,
+                        showLastColumn: false,
+                        showRowStripes: true,
+                        showColumnStripes: false
                     }
-                });
+                }];
 
-                // Style all data cells with alternating row colors (Excel table style)
-                const dataStartRow = 4;
-                for (let row = dataStartRow; row <= dataStartRow + currentPickList.length - 1; row++) {
-                    const isEvenRow = (row - dataStartRow) % 2 === 1;
-                    ['A', 'B', 'C', 'D'].forEach(col => {
-                        const cellRef = col + row;
-                        if (ws[cellRef]) {
-                            ws[cellRef].s = {
-                                fill: { fgColor: { rgb: isEvenRow ? 'F2F2F2' : 'FFFFFF' } }, // Alternating colors
-                                alignment: { horizontal: 'left', vertical: 'center' },
-                                border: {
-                                    top: { style: 'thin', color: { rgb: '000000' } },
-                                    bottom: { style: 'thin', color: { rgb: '000000' } },
-                                    left: { style: 'thin', color: { rgb: '000000' } },
-                                    right: { style: 'thin', color: { rgb: '000000' } }
-                                }
-                            };
+                // Style the merged title cell
+                ws['A1'] = {
+                    t: 's',
+                    v: shipmentTitle,
+                    s: {
+                        font: { bold: true, sz: 16 },
+                        alignment: { horizontal: 'center', vertical: 'center' },
+                        fill: { fgColor: { rgb: 'D9E1F2' } },
+                        border: {
+                            top: { style: 'medium', color: { rgb: '000000' } },
+                            bottom: { style: 'medium', color: { rgb: '000000' } },
+                            left: { style: 'medium', color: { rgb: '000000' } },
+                            right: { style: 'medium', color: { rgb: '000000' } }
                         }
-                    });
-                }
+                    }
+                };
 
-                // Set print area and page setup for clean printing
-                ws['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
-                
                 // Add worksheet to workbook
                 XLSX.utils.book_append_sheet(wb, ws, 'Pick List');
                 
