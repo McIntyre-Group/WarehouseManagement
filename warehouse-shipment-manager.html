@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warehouse Shipment Manager</title>
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --background: 0 0% 100%;
@@ -348,70 +349,71 @@
         }
 
         @media print {
+            * {
+                visibility: hidden;
+            }
+            
+            #pickList,
+            #pickList * {
+                visibility: visible;
+            }
+            
+            #pickList {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            
             body {
                 background: white !important;
                 color: black !important;
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
+                font-family: Arial, sans-serif !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
-            .container {
-                background: white !important;
-                box-shadow: none !important;
-                max-width: none !important;
-                padding: 0 !important;
+            .pick-list-header {
+                text-align: center !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .pick-list-title {
+                font-size: 18px !important;
+                font-weight: bold !important;
                 margin: 0 !important;
             }
             
-            .header,
-            .main-menu,
-            #shipmentWorkflow .back-button,
-            #createShipmentSection,
-            #shippingSection,
-            .card-header,
-            .button {
-                display: none !important;
+            .pick-list-subtitle {
+                font-size: 16px !important;
+                margin: 5px 0 !important;
+                font-weight: normal !important;
             }
             
-            #pickListSection {
-                background: white !important;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
+            .warehouse-title {
+                font-size: 14px !important;
+                font-weight: bold !important;
+                margin: 20px 0 10px 0 !important;
             }
             
             .table {
-                border: 1px solid #000 !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
                 margin-bottom: 20px !important;
-                font-size: 12px !important;
+                font-size: 11px !important;
+                border: 1px solid #000 !important;
             }
             
             .table th,
             .table td {
                 border: 1px solid #000 !important;
-                padding: 8px !important;
+                padding: 6px !important;
+                text-align: left !important;
             }
             
             .table th {
                 background-color: #f0f0f0 !important;
                 font-weight: bold !important;
-            }
-            
-            .pick-list-title {
-                font-size: 18px !important;
-                margin: 10px 0 !important;
-            }
-            
-            .pick-list-subtitle {
-                font-size: 16px !important;
-                margin: 5px 0 15px 0 !important;
-            }
-            
-            .warehouse-title {
-                font-size: 14px !important;
-                margin: 15px 0 5px 0 !important;
             }
         }
     </style>
@@ -491,7 +493,10 @@
                     </h2>
                 </div>
                 <div id="pickList"></div>
-                <button class="button button-outline" onclick="window.print()">🖨️ Print Pick List</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="button button-outline" onclick="window.print()">🖨️ Print Pick List</button>
+                    <button class="button button-primary" onclick="exportToExcel()">📊 Export to Excel</button>
+                </div>
             </div>
 
             <!-- Add Shipping Details Section -->
@@ -852,6 +857,101 @@
             } catch (error) {
                 console.error('Error updating shipping details:', error);
                 showStatus('Error updating shipping details: ' + error.message, 'error');
+            }
+        }
+
+        function exportToExcel() {
+            if (currentPickList.length === 0) {
+                showStatus('No pick list available to export', 'error');
+                return;
+            }
+
+            try {
+                // Create a new workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Get shipment title
+                const shipmentTitle = document.querySelector('.pick-list-subtitle')?.textContent || 'Pick List';
+                
+                // Group by warehouse
+                const grouped = currentPickList.reduce((acc, item) => {
+                    if (!acc[item.warehouse]) acc[item.warehouse] = [];
+                    acc[item.warehouse].push(item);
+                    return acc;
+                }, {});
+
+                let currentRow = 0;
+                let wsData = [];
+
+                // Add title rows
+                wsData.push(['Pick List']);
+                wsData.push([shipmentTitle]);
+                wsData.push(['']); // Empty row
+                currentRow = 3;
+
+                // Add data for each warehouse
+                Object.keys(grouped).forEach((warehouse, warehouseIndex) => {
+                    // Add warehouse header
+                    wsData.push([`📍 ${warehouse} Warehouse`]);
+                    currentRow++;
+                    
+                    // Add table headers
+                    wsData.push(['License Plates', 'Location in Warehouse', 'Pallet Type', 'Warehouse Location']);
+                    currentRow++;
+                    
+                    // Add data rows
+                    grouped[warehouse].forEach(item => {
+                        wsData.push([item.licensePlate, item.location, item.palletType, item.warehouse]);
+                        currentRow++;
+                    });
+                    
+                    // Add empty row between warehouses (except last one)
+                    if (warehouseIndex < Object.keys(grouped).length - 1) {
+                        wsData.push(['']);
+                        currentRow++;
+                    }
+                });
+
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                
+                // Set column widths
+                ws['!cols'] = [
+                    { width: 15 }, // License Plates
+                    { width: 20 }, // Location in Warehouse
+                    { width: 25 }, // Pallet Type
+                    { width: 18 }  // Warehouse Location
+                ];
+
+                // Style the title rows
+                if (ws['A1']) {
+                    ws['A1'].s = { 
+                        font: { bold: true, sz: 16 },
+                        alignment: { horizontal: 'center' }
+                    };
+                }
+                if (ws['A2']) {
+                    ws['A2'].s = { 
+                        font: { bold: true, sz: 14 },
+                        alignment: { horizontal: 'center' }
+                    };
+                }
+
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'Pick List');
+                
+                // Generate filename with timestamp
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+                const filename = `Pick_List_${shipmentTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.xlsx`;
+                
+                // Save file
+                XLSX.writeFile(wb, filename);
+                
+                showStatus(`📊 Pick list exported to ${filename}`, 'success');
+                
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                showStatus('Error exporting to Excel: ' + error.message, 'error');
             }
         }
     </script>
