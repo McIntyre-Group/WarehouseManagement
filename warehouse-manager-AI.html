@@ -900,10 +900,22 @@ Always provide helpful, accurate information based on the data. When showing dat
                     worksheets.load('items/name');
                     await context.sync();
 
+                    // Process only date sheets (MAY, JUNE, JULY, AUG, etc.) - exclude PIVOT, TOTAL DATA, Lookup
                     for (const worksheet of worksheets.items) {
+                        // Skip excluded sheets
                         if (worksheet.name.includes('Lookup') || 
                             worksheet.name.includes('PIVOT') || 
                             worksheet.name.includes('TOTAL DATA')) {
+                            continue;
+                        }
+                        
+                        // Only process month/date sheets
+                        if (!(worksheet.name.includes('MAY') || worksheet.name.includes('JUNE') || 
+                              worksheet.name.includes('JULY') || worksheet.name.includes('AUG') ||
+                              worksheet.name.includes('SEP') || worksheet.name.includes('OCT') ||
+                              worksheet.name.includes('NOV') || worksheet.name.includes('DEC') ||
+                              worksheet.name.includes('JAN') || worksheet.name.includes('FEB') ||
+                              worksheet.name.includes('MAR') || worksheet.name.includes('APR'))) {
                             continue;
                         }
 
