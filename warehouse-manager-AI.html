@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse Management v3 - AI Assistant</title>
+    <title>Warehouse Management v3.1 - AI Assistant</title>
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -179,9 +179,10 @@
                         <p class="text-sm text-base-content/70 mb-2">Try asking:</p>
                         <div class="flex flex-wrap gap-2">
                             <button class="btn btn-xs btn-outline" onclick="askQuestion('What items are currently in stock?')">Current stock</button>
-                            <button class="btn btn-xs btn-outline" onclick="askQuestion('Show me items received this week')">Recent items</button>
+                            <button class="btn btn-xs btn-outline" onclick="askQuestion('Show me items received on May 26, 2024')">May 26th items</button>
                             <button class="btn btn-xs btn-outline" onclick="askQuestion('Which warehouse has the most inventory?')">Warehouse summary</button>
                             <button class="btn btn-xs btn-outline" onclick="askQuestion('Find license plate 1040044')">Find item</button>
+                            <button class="btn btn-xs btn-outline" onclick="askQuestion('Debug: show me 5 sample items with dates')">Debug dates</button>
                         </div>
                     </div>
                     
@@ -602,7 +603,7 @@
             const functions = [
                 {
                     name: "search_inventory",
-                    description: "Search warehouse inventory by various criteria",
+                    description: "Search warehouse inventory by various criteria. For single date queries, use the same date for both start and end.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -620,10 +621,12 @@
                             },
                             dateRange: {
                                 type: "object",
+                                description: "Date range for received date. For single date, use same date for start and end.",
                                 properties: {
-                                    start: { type: "string", description: "Start date (YYYY-MM-DD)" },
-                                    end: { type: "string", description: "End date (YYYY-MM-DD)" }
-                                }
+                                    start: { type: "string", description: "Start date (YYYY-MM-DD). For 'May 26th' use '2024-05-26'" },
+                                    end: { type: "string", description: "End date (YYYY-MM-DD). For single date search, use same as start" }
+                                },
+                                required: ["start", "end"]
                             }
                         }
                     }
@@ -777,17 +780,37 @@ Always provide helpful, accurate information based on the data. When showing dat
             }
             
             if (args.dateRange) {
-                const startDate = new Date(args.dateRange.start);
-                const endDate = new Date(args.dateRange.end);
+                const startDate = new Date(args.dateRange.start + 'T00:00:00');
+                const endDate = new Date(args.dateRange.end + 'T23:59:59');
                 
                 filtered = filtered.filter(item => {
                     const receivedDate = convertExcelDate(item.receivedDate);
-                    return receivedDate && receivedDate >= startDate && receivedDate <= endDate;
+                    if (!receivedDate) return false;
+                    
+                    // Compare just the date parts
+                    const itemDateStr = receivedDate.toISOString().split('T')[0];
+                    const startDateStr = startDate.toISOString().split('T')[0];
+                    const endDateStr = endDate.toISOString().split('T')[0];
+                    
+                    return itemDateStr >= startDateStr && itemDateStr <= endDateStr;
                 });
             }
             
+            // Debug info for troubleshooting
+            const debugInfo = {
+                totalDataItems: data.length,
+                filteredItems: filtered.length,
+                sampleDates: data.slice(0, 5).map(item => ({
+                    licensePlate: item.licensePlate,
+                    rawReceivedDate: item.receivedDate,
+                    convertedDate: convertExcelDate(item.receivedDate),
+                    formattedDate: formatDate(item.receivedDate)
+                }))
+            };
+            
             return {
                 total: filtered.length,
+                debug: debugInfo,
                 items: filtered.slice(0, 50).map(item => ({
                     licensePlate: item.licensePlate,
                     location: item.location,
