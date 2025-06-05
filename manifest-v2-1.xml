@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
+  <Id>12345678-1234-1234-1234-123456789014</Id>
+  <Version>2.1.0.0</Version>
+  <ProviderName>McIntyre Group</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Warehouse Management v2.1 (DaisyUI)"/>
+  <Description DefaultValue="Professional warehouse management with DaisyUI design and fixed date formatting"/>
+  <IconUrl DefaultValue="https://cdn-icons-png.flaticon.com/32/3039/3039004.png"/>
+  <HighResolutionIconUrl DefaultValue="https://cdn-icons-png.flaticon.com/64/3039/3039004.png"/>
+  <SupportUrl DefaultValue="https://github.com/mcintyre-group/WarehouseManagement"/>
+  <AppDomains>
+    <AppDomain>https://mcintyre-group.github.io</AppDomain>
+    <AppDomain>https://cdnjs.cloudflare.com</AppDomain>
+    <AppDomain>https://cdn.jsdelivr.net</AppDomain>
+    <AppDomain>https://cdn.tailwindcss.com</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          <FunctionFile resid="Commands.Url"/>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="CommandsGroup">
+                <Label resid="CommandsGroup.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+                <Control xsi:type="Button" id="TaskpaneButton">
+                  <Label resid="TaskpaneButton.Label"/>
+                  <Supertip>
+                    <Title resid="TaskpaneButton.Label"/>
+                    <Description resid="TaskpaneButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://cdn-icons-png.flaticon.com/16/3039/3039004.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://cdn-icons-png.flaticon.com/32/3039/3039004.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://cdn-icons-png.flaticon.com/80/3039/3039004.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Warehouse Management v2.1 (DaisyUI)"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Warehouse Tools v2.1"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Warehouse v2.1"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Professional warehouse management with DaisyUI design and fixed date formatting"/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open Warehouse Management v2.1 with DaisyUI design and landscape reports"/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
