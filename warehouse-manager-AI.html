@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse Management v3.1 - AI Assistant</title>
+    <title>Warehouse Management v3.2 - AI Assistant</title>
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -758,6 +758,7 @@ Always provide helpful, accurate information based on the data. When showing dat
 
         function searchInventory(data, args) {
             let filtered = data;
+            const originalCount = data.length;
             
             if (args.licensePlate) {
                 filtered = filtered.filter(item => 
@@ -779,9 +780,12 @@ Always provide helpful, accurate information based on the data. When showing dat
                 }
             }
             
+            let dateFilteredCount = 0;
             if (args.dateRange) {
                 const startDate = new Date(args.dateRange.start + 'T00:00:00');
                 const endDate = new Date(args.dateRange.end + 'T23:59:59');
+                
+                const originalFilteredCount = filtered.length;
                 
                 filtered = filtered.filter(item => {
                     const receivedDate = convertExcelDate(item.receivedDate);
@@ -794,18 +798,34 @@ Always provide helpful, accurate information based on the data. When showing dat
                     
                     return itemDateStr >= startDateStr && itemDateStr <= endDateStr;
                 });
+                
+                dateFilteredCount = filtered.length;
             }
             
-            // Debug info for troubleshooting
+            // Enhanced debug info
             const debugInfo = {
-                totalDataItems: data.length,
-                filteredItems: filtered.length,
-                sampleDates: data.slice(0, 5).map(item => ({
+                originalDataCount: originalCount,
+                afterFiltering: filtered.length,
+                searchCriteria: args,
+                dateFilterResults: args.dateRange ? dateFilteredCount : 'No date filter applied',
+                sheetBreakdown: data.reduce((acc, item) => {
+                    acc[item.sheet] = (acc[item.sheet] || 0) + 1;
+                    return acc;
+                }, {}),
+                sampleFilteredItems: filtered.slice(0, 3).map(item => ({
                     licensePlate: item.licensePlate,
+                    sheet: item.sheet,
+                    rowNumber: item.rowNumber,
                     rawReceivedDate: item.receivedDate,
                     convertedDate: convertExcelDate(item.receivedDate),
                     formattedDate: formatDate(item.receivedDate)
-                }))
+                })),
+                may26Matches: data.filter(item => {
+                    const receivedDate = convertExcelDate(item.receivedDate);
+                    if (!receivedDate) return false;
+                    const dateStr = receivedDate.toISOString().split('T')[0];
+                    return dateStr === '2025-05-26';
+                }).length
             };
             
             return {
@@ -818,7 +838,9 @@ Always provide helpful, accurate information based on the data. When showing dat
                     warehouse: item.warehouse,
                     receivedDate: formatDate(item.receivedDate),
                     shipOutDate: item.shipOutDate ? formatDate(item.shipOutDate) : 'Not Shipped',
-                    trailer: item.trailer || ''
+                    trailer: item.trailer || '',
+                    sheet: item.sheet,
+                    row: item.rowNumber
                 }))
             };
         }
@@ -913,7 +935,6 @@ Always provide helpful, accurate information based on the data. When showing dat
             return `${start} to ${end}`;
         }
 
-        // Inventory Data Functions (from original system)
         async function getAllInventoryData() {
             const allData = [];
             
@@ -955,17 +976,21 @@ Always provide helpful, accurate information based on the data. When showing dat
                         const licenseCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('license'));
                         const locationCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('location in warehouse'));
                         const palletCol = headers.findIndex(h => h.toString().toLowerCase().includes('pallet type'));
-                        const warehouseCol = headers.findIndex(h => h.toString().toLowerCase().includes('warehouse location'));
+                        const warehouseCol = headers.findIndex(h => h.toString().toLowerCase().includes('warehouse'));
                         const receivedCol = headers.findIndex(h => h.toString().toLowerCase().includes('received date'));
                         const shipDateCol = headers.findIndex(h => h.toString().toLowerCase().includes('ship out date'));
                         const trailerCol = headers.findIndex(h => h.toString().toLowerCase().includes('ship out trailer'));
                         
                         if (licenseCol === -1) continue;
 
+                        // Count items for this sheet for debugging
+                        let sheetItemCount = 0;
+
                         for (let row = 1; row < values.length; row++) {
                             const licensePlate = values[row][licenseCol];
                             if (!licensePlate) continue;
 
+                            sheetItemCount++;
                             allData.push({
                                 licensePlate: licensePlate,
                                 location: locationCol !== -1 ? values[row][locationCol] : '',
@@ -974,12 +999,17 @@ Always provide helpful, accurate information based on the data. When showing dat
                                 receivedDate: receivedCol !== -1 ? values[row][receivedCol] : null,
                                 shipOutDate: shipDateCol !== -1 ? values[row][shipDateCol] : null,
                                 trailer: trailerCol !== -1 ? values[row][trailerCol] : '',
-                                sheet: worksheet.name
+                                sheet: worksheet.name,
+                                rowNumber: row + 1 // For debugging
                             });
                         }
+                        
+                        // Log sheet info for debugging
+                        console.log(`Sheet: ${worksheet.name}, Items found: ${sheetItemCount}, Total rows: ${values.length}`);
                     }
                 });
                 
+                console.log(`Total items loaded from all sheets: ${allData.length}`);
                 return allData;
             } catch (error) {
                 console.error('Error getting inventory data:', error);
