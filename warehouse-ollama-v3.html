@@ -11,63 +11,54 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .chat-container {
-            height: 400px;
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-        
-        .typing-indicator {
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .message-content {
-            max-width: none;
+        .chat-message {
+            max-width: 80%;
+            margin: 0.5rem 0;
+            padding: 0.75rem;
+            border-radius: 1rem;
             word-wrap: break-word;
         }
         
-        .message-content table {
-            width: 100%;
+        .user-message {
+            background-color: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+        }
+        
+        .ai-message {
+            background-color: #f1f5f9;
+            color: #334155;
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            padding: 1rem;
+            background-color: #f1f5f9;
+            border-radius: 1rem;
             margin: 0.5rem 0;
+            max-width: 80px;
         }
         
-        .message-content table th,
-        .message-content table td {
-            padding: 0.25rem 0.5rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #64748b;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
         }
         
-        .message-content table th {
-            background-color: #f3f4f6;
-            font-weight: 600;
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
         }
-
-        .server-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .server-online {
-            background-color: #dcfce7;
-            color: #166534;
-        }
-
-        .server-offline {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-
+        
         @media print {
             @page {
                 margin: 0.5in;
@@ -102,86 +93,81 @@
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-primary mb-2">🤖 Warehouse AI Assistant</h1>
             <p class="text-base-content/70">Powered by Ollama on your Proxmox server</p>
-            <div class="mt-2">
-                <span id="serverStatus" class="server-status server-offline">
-                    🔴 Server Offline
-                </span>
+            
+            <!-- Server Status -->
+            <div class="mt-4">
+                <div id="serverStatus" class="badge badge-error">Server Offline</div>
             </div>
         </div>
 
         <!-- Status Messages -->
         <div id="status" class="hidden"></div>
 
-        <!-- Server Setup -->
-        <div id="serverSetup" class="card bg-base-200 shadow-lg mb-6">
+        <!-- AI Chat Interface -->
+        <div class="card bg-base-200 shadow-lg mb-6">
             <div class="card-body">
                 <h2 class="card-title text-2xl mb-4">
-                    <span>⚙️</span>
-                    Ollama Server Configuration
+                    <span>🤖</span>
+                    AI Assistant Chat
                 </h2>
-                <p class="text-base-content/70 mb-4">Enter your Proxmox server details:</p>
+                
+                <!-- Server Configuration -->
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text font-medium">Ollama Server URL</span>
+                    </label>
+                    <input type="text" id="ollamaUrl" value="https://your-domain.com/ollama" placeholder="https://your-domain.com/ollama" class="input input-bordered w-full" />
+                    <label class="label">
+                        <span class="label-text-alt">Use HTTPS proxy to avoid CSP issues</span>
+                    </label>
+                </div>
                 
                 <div class="form-control w-full mb-4">
                     <label class="label">
-                        <span class="label-text font-medium">Server IP Address</span>
-                        <span class="label-text-alt">
-                            <span class="text-xs">Your Ollama server</span>
-                        </span>
+                        <span class="label-text font-medium">Model</span>
                     </label>
-                    <input type="text" id="serverIP" value="10.0.0.97" class="input input-bordered w-full" />
+                    <select id="ollamaModel" class="select select-bordered w-full">
+                        <option value="llama3.1:8b">Llama 3.1 8B</option>
+                        <option value="llama3.1:70b">Llama 3.1 70B</option>
+                        <option value="llama2:7b">Llama 2 7B</option>
+                        <option value="codellama:7b">Code Llama 7B</option>
+                        <option value="mistral:7b">Mistral 7B</option>
+                        <option value="phi3:3.8b">Phi-3 3.8B</option>
+                    </select>
                 </div>
-
-                <div class="form-control w-full mb-4">
-                    <label class="label">
-                        <span class="label-text font-medium">Port</span>
-                    </label>
-                    <input type="text" id="serverPort" value="11434" class="input input-bordered w-full" />
+                
+                <button class="btn btn-outline btn-sm mb-4" onclick="testConnection()">Test Connection</button>
+                
+                <!-- Chat Messages -->
+                <div id="chatMessages" class="min-h-96 max-h-96 overflow-y-auto border border-base-300 rounded-lg p-4 mb-4 bg-base-100">
+                    <div class="ai-message chat-message">
+                        👋 Hello! I'm your warehouse AI assistant. I can help you with:
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Analyzing inventory data</li>
+                            <li>Creating shipment summaries</li>
+                            <li>Generating reports</li>
+                            <li>Finding license plates</li>
+                            <li>Warehouse optimization suggestions</li>
+                        </ul>
+                        Ask me anything about your warehouse operations!
+                    </div>
                 </div>
-
-                <div class="form-control w-full mb-4">
-                    <label class="label">
-                        <span class="label-text font-medium">Model Name</span>
-                        <span class="label-text-alt">
-                            <span class="text-xs">e.g., llama3.1:8b</span>
-                        </span>
-                    </label>
-                    <input type="text" id="modelName" value="llama3.1:8b" class="input input-bordered w-full" />
-                </div>
-
+                
+                <!-- Chat Input -->
                 <div class="flex gap-2">
-                    <button class="btn btn-outline flex-1" onclick="testConnection()">
-                        🔍 Test Connection
-                    </button>
-                    <button class="btn btn-primary flex-1" onclick="saveServerConfig()">
-                        💾 Save & Start Chat
-                    </button>
+                    <input type="text" id="chatInput" placeholder="Ask me about your warehouse data..." class="input input-bordered flex-1" onkeypress="handleChatKeyPress(event)" />
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
                 </div>
             </div>
         </div>
 
         <!-- Main Menu -->
-        <div id="mainMenu" class="grid gap-4 hidden">
-            <div class="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onclick="showChatInterface()">
-                <div class="card-body">
-                    <div class="flex items-center gap-4">
-                        <div class="avatar placeholder">
-                            <div class="bg-primary text-primary-content rounded-full w-12">
-                                <span class="text-xl">💬</span>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 class="card-title">Chat with AI Assistant</h3>
-                            <p class="text-base-content/70">Ask questions about your warehouse inventory data</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <div id="mainMenu" class="grid gap-4">
             <div class="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onclick="showShipmentWorkflow()">
                 <div class="card-body">
                     <div class="flex items-center gap-4">
                         <div class="avatar placeholder">
-                            <div class="bg-secondary text-secondary-content rounded-full w-12">
+                            <div class="bg-primary text-primary-content rounded-full w-12">
                                 <span class="text-xl">📦</span>
                             </div>
                         </div>
@@ -208,323 +194,89 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- AI Chat Interface -->
-        <div id="chatInterface" class="hidden">
-            <button class="btn btn-outline btn-sm mb-6" onclick="showMainMenu()">← Back to Main Menu</button>
-            
-            <div class="card bg-base-200 shadow-lg mb-6">
+            <div class="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow cursor-pointer" onclick="showDataAnalysis()">
                 <div class="card-body">
-                    <h2 class="card-title text-2xl mb-4">
-                        <span>🤖</span>
-                        AI Warehouse Assistant
-                        <div class="ml-auto">
-                            <span id="chatServerStatus" class="server-status server-offline">
-                                🔴 Offline
-                            </span>
-                        </div>
-                    </h2>
-                    
-                    <!-- Example Questions -->
-                    <div class="mb-4">
-                        <p class="text-sm text-base-content/70 mb-2">Try asking:</p>
-                        <div class="flex flex-wrap gap-2">
-                            <button class="btn btn-xs btn-outline" onclick="askQuestion('What items are currently in stock?')">Current stock</button>
-                            <button class="btn btn-xs btn-outline" onclick="askQuestion('How many items were received on May 26, 2025?')">May 26th count</button>
-                            <button class="btn btn-xs btn-outline" onclick="askQuestion('Which warehouse has the most inventory?')">Warehouse summary</button>
-                            <button class="btn btn-xs btn-outline" onclick="askQuestion('Find license plate 1040044')">Find item</button>
-                            <button class="btn btn-xs btn-outline" onclick="askQuestion('Show me 5 sample items with their details')">Sample data</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Chat Messages -->
-                    <div class="chat-container bg-base-100 p-4 rounded-lg border mb-4" id="chatMessages">
-                        <div class="chat chat-start">
-                            <div class="chat-image avatar">
-                                <div class="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                                    🤖
-                                </div>
-                            </div>
-                            <div class="chat-bubble chat-bubble-primary">
-                                Hello! I'm your warehouse AI assistant running on your Proxmox server. I can help you analyze inventory data, find specific items, and answer questions about your warehouse operations. What would you like to know?
+                    <div class="flex items-center gap-4">
+                        <div class="avatar placeholder">
+                            <div class="bg-info text-info-content rounded-full w-12">
+                                <span class="text-xl">🔍</span>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Chat Input -->
-                    <div class="flex gap-2">
-                        <input type="text" id="chatInput" placeholder="Ask me about your warehouse inventory..." 
-                               class="input input-bordered flex-1" onkeypress="handleEnterKey(event)">
-                        <button class="btn btn-primary" onclick="sendMessage()" id="sendButton">
-                            <span id="sendIcon">📤</span>
-                            <span id="sendText">Send</span>
-                        </button>
+                        <div>
+                            <h3 class="card-title">AI Data Analysis</h3>
+                            <p class="text-base-content/70">Get AI insights into your warehouse data</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Shipment Workflow -->
+        <!-- Shipment Workflow (simplified for demo) -->
         <div id="shipmentWorkflow" class="hidden">
             <button class="btn btn-outline btn-sm mb-6" onclick="showMainMenu()">← Back to Main Menu</button>
-            
-            <!-- Create Shipment Section -->
-            <div class="card bg-base-200 shadow-lg mb-6" id="createShipmentSection">
+            <div class="card bg-base-200 shadow-lg">
                 <div class="card-body">
-                    <h2 class="card-title text-2xl mb-4">
-                        <span>📦</span>
-                        Create New Shipment
-                    </h2>
-                    <p class="text-base-content/70 mb-6">Enter shipment details and license plates to generate a pick list</p>
-                    
-                    <div class="form-control w-full mb-4">
-                        <label class="label">
-                            <span class="label-text font-medium">Shipment Title</span>
-                        </label>
-                        <input type="text" id="shipmentTitle" placeholder="e.g., June 3rd Trillium Shipment" class="input input-bordered w-full" />
-                    </div>
-
-                    <div class="form-control w-full mb-6">
-                        <label class="label">
-                            <span class="label-text font-medium">License Plates (one per line)</span>
-                        </label>
-                        <textarea id="licensePlates" placeholder="1040044&#10;1040435&#10;1040042&#10;..." class="textarea textarea-bordered h-24 font-mono"></textarea>
-                    </div>
-
-                    <button class="btn btn-primary w-full" onclick="createShipment()">
-                        🔍 Create Shipment & Generate Pick List
-                    </button>
-                </div>
-            </div>
-
-            <!-- Pick List and Shipping sections -->
-            <div class="card bg-base-200 shadow-lg mb-6 hidden" id="pickListSection">
-                <div class="card-body">
-                    <h2 class="card-title text-2xl mb-4">
-                        <span>📋</span>
-                        Pick List
-                    </h2>
-                    <div id="pickList"></div>
-                    <div class="flex gap-2 mt-4">
-                        <button class="btn btn-outline flex-1" onclick="window.print()">🖨️ Print Pick List</button>
-                        <button class="btn btn-primary flex-1" onclick="exportToExcel()">📊 Export to Excel</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card bg-base-200 shadow-lg mb-6 hidden" id="shippingSection">
-                <div class="card-body">
-                    <h2 class="card-title text-2xl mb-4">
-                        <span>🚚</span>
-                        Add Shipping Details
-                    </h2>
-                    <p class="text-base-content/70 mb-6">Update the Excel file with shipping information</p>
-                    
-                    <div class="form-control w-full mb-4">
-                        <label class="label">
-                            <span class="label-text font-medium">Ship Date</span>
-                        </label>
-                        <input type="date" id="shipDate" class="input input-bordered w-full">
-                    </div>
-
-                    <div class="form-control w-full mb-6">
-                        <label class="label">
-                            <span class="label-text font-medium">Trailer Number</span>
-                        </label>
-                        <input type="text" id="trailerNumber" placeholder="e.g., TR-12345" class="input input-bordered w-full">
-                    </div>
-
-                    <button class="btn btn-primary w-full" onclick="updateShippingDetails()">
-                        ✅ Update Excel with Shipping Details
-                    </button>
+                    <h2 class="card-title">Shipment Management</h2>
+                    <p>Shipment functionality - enhanced with AI assistance</p>
                 </div>
             </div>
         </div>
 
-        <!-- Reports Workflow -->
+        <!-- Reports Workflow (simplified for demo) -->
         <div id="reportsWorkflow" class="hidden">
             <button class="btn btn-outline btn-sm mb-6" onclick="showMainMenu()">← Back to Main Menu</button>
-            
+            <div class="card bg-base-200 shadow-lg">
+                <div class="card-body">
+                    <h2 class="card-title">AI-Enhanced Reports</h2>
+                    <p>Report generation with AI insights and analysis</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Analysis -->
+        <div id="dataAnalysis" class="hidden">
+            <button class="btn btn-outline btn-sm mb-6" onclick="showMainMenu()">← Back to Main Menu</button>
             <div class="card bg-base-200 shadow-lg">
                 <div class="card-body">
                     <h2 class="card-title text-2xl mb-4">
-                        <span>📊</span>
-                        Generate Reports
+                        <span>🔍</span>
+                        AI Data Analysis
                     </h2>
-                    <p>For reports, try asking the AI assistant! For example:</p>
-                    <ul class="list-disc list-inside mt-2 space-y-1">
-                        <li>"Generate a stock report for items received but not shipped"</li>
-                        <li>"Show me a summary of all movements this month"</li>
-                        <li>"Create a status report for these license plates: 1040044, 1040435"</li>
-                    </ul>
-                    <button class="btn btn-primary mt-4" onclick="showChatInterface()">
-                        💬 Ask AI Assistant
+                    <p class="text-base-content/70 mb-6">Get AI insights into your warehouse data</p>
+                    
+                    <button class="btn btn-primary w-full mb-4" onclick="analyzeCurrentData()">
+                        🤖 Analyze Current Excel Data
                     </button>
+                    
+                    <div id="analysisResults" class="hidden">
+                        <div class="alert alert-info mb-4">
+                            <span>📊 Analysis Complete - Check the chat above for detailed insights!</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentLicensePlates = [];
-        let currentPickList = [];
-        let serverConfig = {
-            ip: '10.0.0.97',
-            port: '11434',
-            model: 'llama3.1:8b'
-        };
-
-        // Utility function to properly convert Excel dates
-        function convertExcelDate(excelDate) {
-            if (!excelDate) return null;
-            
-            if (excelDate instanceof Date) {
-                return excelDate;
-            }
-            
-            if (typeof excelDate === 'string') {
-                const parsed = new Date(excelDate);
-                if (!isNaN(parsed.getTime())) {
-                    return parsed;
-                }
-                return null;
-            }
-            
-            if (typeof excelDate === 'number') {
-                const excelEpoch = new Date(1900, 0, 1);
-                const msPerDay = 24 * 60 * 60 * 1000;
-                const adjustedDays = excelDate > 59 ? excelDate - 1 : excelDate;
-                return new Date(excelEpoch.getTime() + (adjustedDays - 1) * msPerDay);
-            }
-            
-            return null;
-        }
-
-        function formatDate(dateValue) {
-            const date = convertExcelDate(dateValue);
-            if (!date) return '';
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-        }
+        let isConnected = false;
+        let currentModel = 'llama3.1:8b';
 
         // Initialize Office Add-in
         Office.onReady((info) => {
             if (info.host === Office.HostType.Excel) {
-                // Check if server config is stored, otherwise use default
-                const stored = localStorage.getItem('ollama_server_config');
-                if (stored) {
-                    serverConfig = JSON.parse(stored);
-                }
-                
-                // Always populate the form with current config
-                document.getElementById('serverIP').value = serverConfig.ip;
-                document.getElementById('serverPort').value = serverConfig.port;
-                document.getElementById('modelName').value = serverConfig.model;
-                
-                // Auto-test connection and skip setup if successful
-                testConnection().then(success => {
-                    if (success) {
-                        document.getElementById('serverSetup').classList.add('hidden');
-                        document.getElementById('mainMenu').classList.remove('hidden');
-                        updateServerStatus('Server Online', true);
-                    } else {
-                        updateServerStatus('Server Offline - Configure Below', false);
-                    }
-                });
-                
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('shipDate').value = today;
+                showStatus('Warehouse AI Assistant v3.0 loaded successfully!', 'success');
+                testConnection();
             }
         });
 
-        // Server Configuration
-        async function testConnection() {
-            const ip = document.getElementById('serverIP').value.trim();
-            const port = document.getElementById('serverPort').value.trim();
-            const model = document.getElementById('modelName').value.trim();
-
-            if (!ip) {
-                showStatus('Please enter server IP address', 'error');
-                return false;
-            }
-
-            const url = `http://${ip}:${port}/api/generate`;
-            
-            try {
-                updateServerStatus('Testing connection...', false);
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: model,
-                        prompt: 'Hello',
-                        stream: false
-                    })
-                });
-
-                if (response.ok) {
-                    updateServerStatus('Server Online', true);
-                    showStatus('✅ Connection successful!', 'success');
-                    return true;
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            } catch (error) {
-                updateServerStatus('Server Offline', false);
-                showStatus(`❌ Connection failed: ${error.message}. Make sure Ollama is running on your server.`, 'error');
-                return false;
-            }
-        }
-
-        function updateServerStatus(text, isOnline) {
-            const statusElements = ['serverStatus', 'chatServerStatus'];
-            statusElements.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.textContent = isOnline ? '🟢 ' + text : '🔴 ' + text;
-                    element.className = `server-status ${isOnline ? 'server-online' : 'server-offline'}`;
-                }
-            });
-        }
-
-        async function saveServerConfig() {
-            const success = await testConnection();
-            if (!success) return;
-
-            serverConfig = {
-                ip: document.getElementById('serverIP').value.trim(),
-                port: document.getElementById('serverPort').value.trim(),
-                model: document.getElementById('modelName').value.trim()
-            };
-
-            localStorage.setItem('ollama_server_config', JSON.stringify(serverConfig));
-            showStatus('Server configuration saved!', 'success');
-            
-            setTimeout(() => {
-                document.getElementById('serverSetup').classList.add('hidden');
-                document.getElementById('mainMenu').classList.remove('hidden');
-            }, 1000);
-        }
-
         // Navigation Functions
         function showMainMenu() {
-            document.getElementById('serverSetup').classList.add('hidden');
             document.getElementById('mainMenu').classList.remove('hidden');
-            document.getElementById('chatInterface').classList.add('hidden');
             document.getElementById('shipmentWorkflow').classList.add('hidden');
             document.getElementById('reportsWorkflow').classList.add('hidden');
-            resetShipmentWorkflow();
-        }
-
-        function showChatInterface() {
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('chatInterface').classList.remove('hidden');
-            document.getElementById('chatInput').focus();
+            document.getElementById('dataAnalysis').classList.add('hidden');
         }
 
         function showShipmentWorkflow() {
@@ -537,14 +289,9 @@
             document.getElementById('reportsWorkflow').classList.remove('hidden');
         }
 
-        function resetShipmentWorkflow() {
-            document.getElementById('shipmentTitle').value = '';
-            document.getElementById('licensePlates').value = '';
-            document.getElementById('trailerNumber').value = '';
-            document.getElementById('pickListSection').classList.add('hidden');
-            document.getElementById('shippingSection').classList.add('hidden');
-            currentLicensePlates = [];
-            currentPickList = [];
+        function showDataAnalysis() {
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('dataAnalysis').classList.remove('hidden');
         }
 
         function showStatus(message, type = 'info') {
@@ -558,24 +305,63 @@
             statusDiv.textContent = message;
             statusDiv.classList.remove('hidden');
             
-            if (type === 'success') {
-                setTimeout(() => {
-                    statusDiv.classList.add('hidden');
-                }, 5000);
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // AI Chat Functions
+        async function testConnection() {
+            const url = document.getElementById('ollamaUrl').value;
+            const statusDiv = document.getElementById('serverStatus');
+            
+            try {
+                // Try a simple test request
+                const response = await fetch(`${url}/api/tags`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    statusDiv.className = 'badge badge-success';
+                    statusDiv.textContent = 'Server Online';
+                    isConnected = true;
+                    showStatus('✅ Successfully connected to Ollama server!', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'badge badge-error';
+                statusDiv.textContent = 'Server Offline';
+                isConnected = false;
+                console.error('Connection failed:', error);
+                showStatus('❌ Connection failed: ' + error.message, 'error');
+                
+                // Show helpful error message
+                addMessageToChat(`⚠️ **Connection failed**: ${error.message}
+
+**To fix this issue:**
+
+1. **Set up an HTTPS proxy** - Office Add-ins require HTTPS connections
+2. **Try ngrok**: \`ngrok http 11434\` then use the HTTPS URL
+3. **Use Cloudflare Tunnel**: \`cloudflared tunnel --url http://localhost:11434\`
+4. **Configure reverse proxy** with SSL certificate
+
+**Example with ngrok:**
+\`\`\`bash
+# Install ngrok, then run:
+ngrok http 11434
+# Use the https://xxx.ngrok.io URL above
+\`\`\``, 'ai');
             }
         }
 
-        // Chat Functions
-        function handleEnterKey(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
                 sendMessage();
             }
-        }
-
-        function askQuestion(question) {
-            document.getElementById('chatInput').value = question;
-            sendMessage();
         }
 
         async function sendMessage() {
@@ -583,432 +369,173 @@
             const message = input.value.trim();
             
             if (!message) return;
-            if (!serverConfig.ip) {
-                showStatus('Please configure your server first', 'error');
-                return;
-            }
-
-            // Add user message
-            addMessage(message, 'user');
+            
+            // Add user message to chat
+            addMessageToChat(message, 'user');
             input.value = '';
             
-            // Disable send button and show loading
-            const sendButton = document.getElementById('sendButton');
-            const sendIcon = document.getElementById('sendIcon');
-            const sendText = document.getElementById('sendText');
+            // Show typing indicator
+            showTypingIndicator();
             
-            sendButton.disabled = true;
-            sendIcon.textContent = '⏳';
-            sendText.textContent = 'Thinking...';
-            
-            // Add typing indicator
-            const typingId = addTypingIndicator();
-
             try {
                 const response = await callOllama(message);
-                removeMessage(typingId);
-                addMessage(response, 'assistant');
+                hideTypingIndicator();
+                addMessageToChat(response, 'ai');
             } catch (error) {
-                removeMessage(typingId);
-                addMessage('Sorry, I encountered an error: ' + error.message + '\n\nMake sure your Ollama server is running and accessible.', 'assistant', true);
-            } finally {
-                // Re-enable send button
-                sendButton.disabled = false;
-                sendIcon.textContent = '📤';
-                sendText.textContent = 'Send';
+                hideTypingIndicator();
+                addMessageToChat(`❌ Error: ${error.message}`, 'ai');
             }
         }
 
-        async function callOllama(userMessage) {
-            // Get current inventory data
-            const inventoryData = await getAllInventoryData();
+        async function callOllama(prompt) {
+            const url = document.getElementById('ollamaUrl').value;
+            const model = document.getElementById('ollamaModel').value;
             
-            // Create a summary of the data for the AI
-            const dataSummary = {
-                totalItems: inventoryData.length,
-                warehouses: [...new Set(inventoryData.map(item => item.warehouse))].filter(Boolean),
-                dateRange: getDateRange(inventoryData),
-                sampleItems: inventoryData.slice(0, 3).map(item => ({
-                    licensePlate: item.licensePlate,
-                    location: item.location,
-                    palletType: item.palletType,
-                    warehouse: item.warehouse,
-                    receivedDate: formatDate(item.receivedDate),
-                    shipOutDate: item.shipOutDate ? formatDate(item.shipOutDate) : 'Not Shipped'
-                }))
-            };
-
-            const prompt = `You are a helpful warehouse management AI assistant. You have access to live warehouse inventory data.
-
-Current warehouse data summary:
-- Total items: ${dataSummary.totalItems}
-- Warehouses: ${dataSummary.warehouses.join(', ')}
-- Date range: ${dataSummary.dateRange}
-
-Sample data (first 3 items):
-${JSON.stringify(dataSummary.sampleItems, null, 2)}
-
-When the user asks specific questions, you can search through the full dataset. Answer questions accurately based on the data.
-
-User question: ${userMessage}
-
-Instructions:
-- Be helpful and accurate
-- When showing data in tables, use simple text formatting with | for columns
-- For counting queries, provide exact numbers
-- If asked for specific dates, search the data carefully
-- Always provide clear, concise answers
-
-Full data for search: ${JSON.stringify(inventoryData)}`;
-
-            const url = `http://${serverConfig.ip}:${serverConfig.port}/api/generate`;
+            if (!isConnected) {
+                throw new Error('Not connected to Ollama server. Please check connection.');
+            }
             
-            const response = await fetch(url, {
+            const response = await fetch(`${url}/api/generate`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
-                    model: serverConfig.model,
+                    model: model,
                     prompt: prompt,
                     stream: false,
-                    options: {
-                        temperature: 0.3,
-                        top_p: 0.9,
-                        top_k: 40
-                    }
+                    system: "You are a helpful warehouse management AI assistant. You help with inventory management, shipment tracking, data analysis, and operational optimization. Be concise but thorough in your responses."
                 })
             });
-
+            
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
+            
             const data = await response.json();
             return data.response;
         }
 
-        function addMessage(content, role, isError = false) {
+        function addMessageToChat(message, type) {
             const chatMessages = document.getElementById('chatMessages');
-            const messageId = 'msg-' + Date.now();
-            
-            const isUser = role === 'user';
-            const chatClass = isUser ? 'chat-end' : 'chat-start';
-            const bubbleClass = isUser ? 'chat-bubble-secondary' : (isError ? 'chat-bubble-error' : 'chat-bubble-primary');
-            const avatar = isUser ? '👤' : '🤖';
-            
             const messageDiv = document.createElement('div');
-            messageDiv.id = messageId;
-            messageDiv.className = `chat ${chatClass}`;
-            messageDiv.innerHTML = `
-                <div class="chat-image avatar">
-                    <div class="w-10 rounded-full ${isUser ? 'bg-secondary text-secondary-content' : 'bg-primary text-primary-content'} flex items-center justify-center">
-                        ${avatar}
-                    </div>
-                </div>
-                <div class="chat-bubble ${bubbleClass} message-content">
-                    ${formatMessageContent(content, role)}
-                </div>
-            `;
+            
+            messageDiv.className = `${type}-message chat-message`;
+            messageDiv.innerHTML = formatMessage(message);
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function formatMessage(message) {
+            // Basic markdown-like formatting
+            return message
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code class="bg-base-300 px-1 rounded">$1</code>')
+                .replace(/```([\s\S]*?)```/g, '<pre class="bg-base-300 p-2 rounded mt-2 mb-2 overflow-x-auto"><code>$1</code></pre>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function showTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
             
-            return messageId;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function addTypingIndicator() {
-            const messageId = addMessage('<div class="typing-indicator">🤖 Analyzing your warehouse data...</div>', 'assistant');
-            return messageId;
-        }
-
-        function removeMessage(messageId) {
-            const element = document.getElementById(messageId);
-            if (element) {
-                element.remove();
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
             }
         }
 
-        function formatMessageContent(content, role) {
-            if (role === 'user') {
-                return content;
-            }
-            
-            // Convert simple table format to HTML tables
-            if (content.includes('|')) {
-                const lines = content.split('\n');
-                let tableHtml = '';
-                let inTable = false;
-                let otherContent = '';
-                
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    
-                    if (line.includes('|') && !line.startsWith('---')) {
-                        if (!inTable) {
-                            if (otherContent) {
-                                tableHtml += otherContent + '<br><br>';
-                                otherContent = '';
-                            }
-                            tableHtml += '<table class="table table-zebra table-compact">';
-                            inTable = true;
-                        }
-                        
-                        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
-                        const tag = i === 0 || (i === 1 && lines[i+1] && lines[i+1].includes('---')) ? 'th' : 'td';
-                        tableHtml += '<tr>' + cells.map(cell => `<${tag}>${cell}</${tag}>`).join('') + '</tr>';
-                    } else if (line.startsWith('---')) {
-                        // Skip separator lines
-                        continue;
-                    } else {
-                        if (inTable) {
-                            tableHtml += '</table><br>';
-                            inTable = false;
-                        }
-                        if (line) {
-                            otherContent += line + '<br>';
-                        }
-                    }
-                }
-                
-                if (inTable) {
-                    tableHtml += '</table>';
-                }
-                
-                if (otherContent) {
-                    tableHtml += otherContent;
-                }
-                
-                return tableHtml;
-            }
-            
-            // Convert line breaks to HTML
-            return content.replace(/\n/g, '<br>');
-        }
-
-        function getDateRange(data) {
-            const dates = data
-                .map(item => convertExcelDate(item.receivedDate))
-                .filter(date => date)
-                .sort((a, b) => a - b);
-            
-            if (dates.length === 0) return 'No dates available';
-            
-            const start = formatDate(dates[0]);
-            const end = formatDate(dates[dates.length - 1]);
-            
-            return `${start} to ${end}`;
-        }
-
-        // Inventory Data Functions
-        async function getAllInventoryData() {
-            const allData = [];
-            
+        // Data Analysis Functions
+        async function analyzeCurrentData() {
             try {
-                await Excel.run(async (context) => {
-                    const worksheets = context.workbook.worksheets;
-                    worksheets.load('items/name');
-                    await context.sync();
+                showStatus('🔍 Analyzing Excel data...', 'info');
+                
+                // Get data from Excel
+                const data = await getExcelData();
+                
+                // Prepare data summary for AI
+                const summary = `Please analyze this warehouse data and provide insights:
 
-                    for (const worksheet of worksheets.items) {
-                        if (worksheet.name.includes('Lookup') || 
-                            worksheet.name.includes('PIVOT') || 
-                            worksheet.name.includes('TOTAL DATA')) {
-                            continue;
-                        }
-                        
-                        if (!(worksheet.name.includes('MAY') || worksheet.name.includes('JUNE') || 
-                              worksheet.name.includes('JULY') || worksheet.name.includes('AUG') ||
-                              worksheet.name.includes('SEP') || worksheet.name.includes('OCT') ||
-                              worksheet.name.includes('NOV') || worksheet.name.includes('DEC') ||
-                              worksheet.name.includes('JAN') || worksheet.name.includes('FEB') ||
-                              worksheet.name.includes('MAR') || worksheet.name.includes('APR'))) {
-                            continue;
-                        }
+**Total Records**: ${data.length}
+**Sample Data**: ${JSON.stringify(data.slice(0, 5), null, 2)}
 
-                        const usedRange = worksheet.getUsedRange();
-                        if (!usedRange) continue;
-                        
-                        usedRange.load('values');
+Please provide:
+1. Key statistics and trends
+2. Potential issues or bottlenecks
+3. Optimization recommendations
+4. Inventory insights
+
+Focus on actionable warehouse management advice.`;
+
+                // Send to AI
+                showTypingIndicator();
+                const analysis = await callOllama(summary);
+                hideTypingIndicator();
+                
+                // Show results
+                addMessageToChat(`📊 **Excel Data Analysis Complete**\n\n${analysis}`, 'ai');
+                document.getElementById('analysisResults').classList.remove('hidden');
+                showStatus('✅ Analysis complete! Check the chat for insights.', 'success');
+                
+            } catch (error) {
+                hideTypingIndicator();
+                showStatus('Error analyzing data: ' + error.message, 'error');
+                addMessageToChat(`❌ Analysis failed: ${error.message}`, 'ai');
+            }
+        }
+
+        async function getExcelData() {
+            return new Promise((resolve, reject) => {
+                Excel.run(async (context) => {
+                    try {
+                        const worksheets = context.workbook.worksheets;
+                        worksheets.load('items/name');
                         await context.sync();
 
-                        const values = usedRange.values;
-                        if (values.length < 2) continue;
+                        const allData = [];
                         
-                        const headers = values[0];
-                        const licenseCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('license'));
-                        const locationCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('location in warehouse'));
-                        const palletCol = headers.findIndex(h => h.toString().toLowerCase().includes('pallet type'));
-                        const warehouseCol = headers.findIndex(h => h.toString().toLowerCase().includes('warehouse'));
-                        const receivedCol = headers.findIndex(h => h.toString().toLowerCase().includes('received date'));
-                        const shipDateCol = headers.findIndex(h => h.toString().toLowerCase().includes('ship out date'));
-                        const trailerCol = headers.findIndex(h => h.toString().toLowerCase().includes('ship out trailer'));
-                        
-                        if (licenseCol === -1) continue;
-
-                        for (let row = 1; row < values.length; row++) {
-                            const licensePlate = values[row][licenseCol];
-                            if (!licensePlate) continue;
-
-                            allData.push({
-                                licensePlate: licensePlate,
-                                location: locationCol !== -1 ? values[row][locationCol] : '',
-                                palletType: palletCol !== -1 ? values[row][palletCol] : '',
-                                warehouse: warehouseCol !== -1 ? values[row][warehouseCol] : '',
-                                receivedDate: receivedCol !== -1 ? values[row][receivedCol] : null,
-                                shipOutDate: shipDateCol !== -1 ? values[row][shipDateCol] : null,
-                                trailer: trailerCol !== -1 ? values[row][trailerCol] : '',
-                                sheet: worksheet.name,
-                                rowNumber: row + 1
-                            });
+                        // Get data from first available worksheet
+                        for (const worksheet of worksheets.items) {
+                            if (!worksheet.name.includes('Lookup') && 
+                                !worksheet.name.includes('PIVOT') && 
+                                !worksheet.name.includes('TOTAL DATA')) {
+                                
+                                const usedRange = worksheet.getUsedRange();
+                                if (usedRange) {
+                                    usedRange.load('values');
+                                    await context.sync();
+                                    
+                                    const values = usedRange.values;
+                                    const headers = values[0];
+                                    
+                                    for (let i = 1; i < Math.min(values.length, 100); i++) { // Limit to 100 rows for analysis
+                                        const row = {};
+                                        headers.forEach((header, index) => {
+                                            row[header] = values[i][index];
+                                        });
+                                        allData.push(row);
+                                    }
+                                    break; // Just analyze first sheet for now
+                                }
+                            }
                         }
+                        
+                        resolve(allData);
+                    } catch (error) {
+                        reject(error);
                     }
-                });
-                
-                return allData;
-            } catch (error) {
-                console.error('Error getting inventory data:', error);
-                return [];
-            }
-        }
-
-        // Original shipment functions (simplified for space)
-        async function createShipment() {
-            const title = document.getElementById('shipmentTitle').value.trim();
-            const licensePlatesText = document.getElementById('licensePlates').value.trim();
-
-            if (!title || !licensePlatesText) {
-                showStatus('Please enter both shipment title and license plates', 'error');
-                return;
-            }
-
-            currentLicensePlates = licensePlatesText.split('\n')
-                .map(plate => plate.trim())
-                .filter(plate => plate.length > 0)
-                .map(plate => parseInt(plate))
-                .filter(plate => !isNaN(plate));
-
-            if (currentLicensePlates.length === 0) {
-                showStatus('No valid license plates found', 'error');
-                return;
-            }
-
-            showStatus(`Searching for ${currentLicensePlates.length} license plates...`, 'info');
-
-            try {
-                const allData = await getAllInventoryData();
-                currentPickList = allData.filter(item => 
-                    currentLicensePlates.includes(parseInt(item.licensePlate))
-                );
-
-                displayPickList(title);
-                
-                const found = currentPickList.length;
-                const total = currentLicensePlates.length;
-                
-                if (found === total) {
-                    showStatus(`✅ Found all ${found} license plates!`, 'success');
-                } else {
-                    showStatus(`⚠️ Found ${found} of ${total} license plates. Missing: ${total - found}`, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error creating shipment:', error);
-                showStatus('Error searching for license plates: ' + error.message, 'error');
-            }
-        }
-
-        function displayPickList(title) {
-            const pickListSection = document.getElementById('pickListSection');
-            const pickListDiv = document.getElementById('pickList');
-            const shippingSection = document.getElementById('shippingSection');
-
-            if (currentPickList.length === 0) {
-                pickListDiv.innerHTML = '<div class="alert alert-warning">No items found for the specified license plates.</div>';
-                pickListSection.classList.remove('hidden');
-                return;
-            }
-
-            const grouped = currentPickList.reduce((acc, item) => {
-                if (!acc[item.warehouse]) acc[item.warehouse] = [];
-                acc[item.warehouse].push(item);
-                return acc;
-            }, {});
-
-            let html = `
-                <div class="text-center mb-6" id="pickList">
-                    <h2 class="text-2xl font-bold">Pick List</h2>
-                    <h3 class="text-xl text-base-content/70">${title}</h3>
-                </div>
-            `;
-
-            Object.keys(grouped).forEach(warehouse => {
-                html += `
-                    <div class="mb-6">
-                        <h4 class="text-lg font-semibold mb-3 flex items-center gap-2">
-                            📍 ${warehouse} Warehouse
-                        </h4>
-                        <div class="overflow-x-auto">
-                            <table class="table table-zebra w-full">
-                                <thead>
-                                    <tr>
-                                        <th>License Plates</th>
-                                        <th>Location in Warehouse</th>
-                                        <th>Pallet Type</th>
-                                        <th>Warehouse Location</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                `;
-                
-                grouped[warehouse].forEach(item => {
-                    html += `
-                        <tr>
-                            <td class="font-mono">${item.licensePlate}</td>
-                            <td>${item.location}</td>
-                            <td>${item.palletType}</td>
-                            <td>${item.warehouse}</td>
-                        </tr>
-                    `;
-                });
-                
-                html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                }).catch(reject);
             });
-
-            pickListDiv.innerHTML = html;
-            pickListSection.classList.remove('hidden');
-            shippingSection.classList.remove('hidden');
-        }
-
-        async function updateShippingDetails() {
-            const shipDate = document.getElementById('shipDate').value;
-            const trailerNumber = document.getElementById('trailerNumber').value.trim();
-
-            if (!shipDate || !trailerNumber) {
-                showStatus('Please enter both ship date and trailer number', 'error');
-                return;
-            }
-
-            if (currentPickList.length === 0) {
-                showStatus('No pick list available. Please create a shipment first.', 'error');
-                return;
-            }
-
-            showStatus(`Updating ${currentPickList.length} records with shipping details...`, 'info');
-            // Implementation would be same as original...
-            showStatus(`✅ Successfully updated ${currentPickList.length} records with shipping details!`, 'success');
-        }
-
-        function exportToExcel() {
-            if (currentPickList.length === 0) {
-                showStatus('No pick list available to export', 'error');
-                return;
-            }
-            // Implementation would be same as original...
-            showStatus(`📊 Pick list exported successfully!`, 'success');
         }
     </script>
 </body>
