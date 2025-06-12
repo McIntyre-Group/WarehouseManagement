@@ -962,8 +962,10 @@
                     const receivedDateTime = convertExcelDate(item.receivedDate);
                     if (!receivedDateTime || receivedDateTime < startDateTime) return false;
                     
-                    if (!item.shipOutDate) return true; // Not shipped yet
+                    // If not shipped yet, include it
+                    if (!item.shipOutDate) return true;
                     
+                    // If shipped, include only if shipped between start and end dates
                     const shipDateTime = convertExcelDate(item.shipOutDate);
                     return shipDateTime && shipDateTime >= startDateTime && shipDateTime <= endDateTime;
                 });
@@ -1254,25 +1256,31 @@
                 const warehouseCapacity = {};
                 const WAREHOUSE_CAPACITY = 1000; // Max pallets per warehouse
                 
-                // Initialize warehouses
+                // Initialize warehouses - normalize names by trimming whitespace
                 allData.forEach(item => {
-                    if (item.warehouse && !warehouseCapacity[item.warehouse]) {
-                        warehouseCapacity[item.warehouse] = {
-                            total: 0,
-                            inStock: 0,
-                            shipped: 0
-                        };
+                    if (item.warehouse) {
+                        const normalizedWarehouse = item.warehouse.toString().trim();
+                        if (normalizedWarehouse && !warehouseCapacity[normalizedWarehouse]) {
+                            warehouseCapacity[normalizedWarehouse] = {
+                                total: 0,
+                                inStock: 0,
+                                shipped: 0
+                            };
+                        }
                     }
                 });
                 
-                // Count items
+                // Count items - use normalized warehouse names
                 allData.forEach(item => {
-                    if (item.warehouse && warehouseCapacity[item.warehouse]) {
-                        warehouseCapacity[item.warehouse].total++;
-                        if (!item.shipOutDate) {
-                            warehouseCapacity[item.warehouse].inStock++;
-                        } else {
-                            warehouseCapacity[item.warehouse].shipped++;
+                    if (item.warehouse) {
+                        const normalizedWarehouse = item.warehouse.toString().trim();
+                        if (normalizedWarehouse && warehouseCapacity[normalizedWarehouse]) {
+                            warehouseCapacity[normalizedWarehouse].total++;
+                            if (!item.shipOutDate) {
+                                warehouseCapacity[normalizedWarehouse].inStock++;
+                            } else {
+                                warehouseCapacity[normalizedWarehouse].shipped++;
+                            }
                         }
                     }
                 });
