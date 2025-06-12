@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
-  <Id>12345678-1234-1234-1234-123456789012</Id>
+  <Id>87654321-4321-4321-4321-210987654321</Id>
   <Version>2.1.0.0</Version>
   <ProviderName>Your Company</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
@@ -17,7 +17,7 @@
     <Host Name="Workbook"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://github.com/McIntyre-Group/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+    <SourceLocation DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
@@ -68,9 +68,9 @@
         <bt:Image id="Icon.80x80" DefaultValue="https://cdn-icons-png.flaticon.com/80/3039/3039004.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/McIntyre-Group/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
-        <bt:Url id="Commands.Url" DefaultValue="https://github.com/McIntyre-Group/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://github.com/McIntyre-Group/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://mcintyre-group.github.io/WarehouseManagement/warehouse-shipment-manager-v2-1.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Warehouse Shipment Manager v2.1"/>
